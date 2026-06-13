@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🍕 Pizza Rush PRO: Аркада Повара</title>
+    <style>
+        * {
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+
+        /* Переключение темы */
+        body {
+            font-family: 'Segoe UI', 'Crafty', system-ui;
+            transition: background 0.5s, color 0.3s;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            background: #e8e0d5;
+        }
+
+        body.dark {
+            background: #0a0f1e;
+            color: #ccd6f0;
+        }
+
+        body.dark .game-container {
+            background: #111827;
+            border-color: #3b82f6;
+            box-shadow: 0 0 20px rgba(59,130,246,0.3);
+        }
+
+        body.dark .order-card, body.dark .assembly, body.dark .upgrades, body.dark .leaderboard {
+            background: #1f2937;
+            color: #e5e7eb;
+            border-color: #374151;
+        }
+
+        /* Paper style (крафт) */
+        .game-container {
+            max-width: 650px;
+            width: 100%;
+            margin: 0 auto;
+            background: #fdf8ed;
+            border-radius: 60px;
+            overflow: hidden;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.2);
+            border: 2px solid #c8a87c;
+            transition: 0.3s;
+            position: relative;
+        }
+
+        /* Ресурсы */
+        .resources {
+            background: #2c1a0e;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            color: #fdf8ed;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        body.dark .resources {
+            background: #0f172a;
+        }
+        .resource {
+            background: rgba(255,255,255,0.2);
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-weight: bold;
+            backdrop-filter: blur(2px);
+        }
+
+        /* Карточка заказа */
+        .order-card {
+            background: #fff5e8;
+            margin: 20px;
+            padding: 18px;
+            border-radius: 40px;
+            text-align: center;
+            transition: 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .order-card.steam::after {
+            content: "🔥";
+            position: absolute;
+            font-size: 70px;
+            opacity: 0.3;
+            right: -10px;
+            top: -20px;
+            animation: steamFloat 1s infinite;
+        }
+        @keyframes steamFloat {
+            0% { transform: translateY(0px); opacity: 0.3; }
+            100% { transform: translateY(-15px); opacity: 0; }
+        }
+
+        .order-title { font-size: 13px; letter-spacing: 2px; color: #a67b5b; }
+        .order-pizza { font-size: 55px; margin: 5px 0; }
+        .order-name { font-size: 26px; font-weight: bold; }
+        .order-ingredients { font-size: 13px; margin: 8px 0; opacity: 0.8; }
+        .order-reward { background: #27ae60; display: inline-block; padding: 6px 18px; border-radius: 40px; font-weight: bold; margin: 8px 0; }
+        .timer-bar { background: #e0c8a8; border-radius: 10px; height: 8px; margin: 12px 0; overflow: hidden; }
+        .timer-fill { background: #e74c3c; width: 100%; height: 100%; transition: width 0.05s linear; }
+
+        /* Ингредиенты-конвейер */
+        .ingredients-conveyor {
+            background: #e0cfb5;
+            border-radius: 60px;
+            padding: 15px;
+            margin: 15px;
+            position: relative;
+            overflow-x: auto;
+            white-space: nowrap;
+            scroll-behavior: smooth;
+        }
+        .ingredient-scroll {
+            display: flex;
+            gap: 12px;
+            animation: slideIn 0.3s ease;
+        }
+        .ingredient-item {
+            background: white;
+            border: none;
+            border-radius: 100px;
+            padding: 12px 20px;
+            font-size: 26px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.1s;
+            box-shadow: 0 5px 0 #b97f52;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .ingredient-item:active { transform: translateY(3px); box-shadow: 0 2px 0 #b97f52; }
+
+        .current-pizza {
+            background: #2c1a0e;
+            color: white;
+            text-align: center;
+            padding: 12px;
+            border-radius: 60px;
+            margin: 10px 15px;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        /* Кнопки */
+        .complete-btn {
+            width: calc(100% - 30px);
+            margin: 10px 15px 20px;
+            background: #d4a373;
+            border: none;
+            padding: 16px;
+            border-radius: 60px;
+            font-weight: bold;
+            font-size: 20px;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+
+        .tab {
+            display: flex;
+            gap: 10px;
+            margin: 10px 15px;
+        }
+        .tab-btn {
+            flex: 1;
+            background: #d4a373;
+            border: none;
+            padding: 12px;
+            border-radius: 40px;
+            font-weight: bold;
+        }
+        .leaderboard-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .leaderboard-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #ccc;
+        }
+        .upgrade-item {
+            background: #fff0e0;
+            margin: 8px 0;
+            padding: 10px;
+            border-radius: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2c3e50;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 30px;
+            animation: fadeOut 2s forwards;
+            z-index: 999;
+        }
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            70% { opacity: 1; }
+            100% { opacity: 0; visibility: hidden; }
+        }
+
+        body.dark .ingredients-conveyor { background: #2d3748; }
+        body.dark .ingredient-item { background: #334155; color: white; }
+        body.dark .current-pizza { background: #0f172a; }
+        body.dark .upgrade-item { background: #2d3748; }
+        body.dark .complete-btn { background: #3b82f6; }
+        body.dark .tab-btn { background: #3b82f6; }
+        
+        .dirty-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: repeating-linear-gradient(45deg, #5a3e2a33, #5a3e2a33 20px, #7a5a3a33 20px, #7a5a3a33 40px);
+            z-index: 1000;
+            animation: shake 0.2s infinite;
+        }
+        @keyframes shake {
+            0% { transform: translate(1px,1px); }
+            100% { transform: translate(-1px,-1px); }
+        }
+    </style>
+</head>
+<body>
+<div class="game-container" id="gameContainer">
+    <div class="resources">
+        <div class="resource">💰 <span id="money">200</span></div>
+        <div class="resource">⭐ Ур. <span id="level">1</span></div>
+        <div class="resource">🍕 <span id="pizzasMade">0</span></div>
+        <div class="resource">🔥 Комбо x<span id="combo">1</span></div>
+        <div class="resource" style="cursor:pointer" id="themeToggle">🌙 Ночь</div>
+    </div>
+
+    <div class="order-card" id="orderCard">
+        <div class="order-title">🔥 VIP ЗАКАЗ 🔥</div>
+        <div class="order-pizza" id="orderEmoji">🍕</div>
+        <div class="order-name" id="orderName">Маргарита</div>
+        <div class="order-ingredients" id="orderIngredients">🍅 + 🧀 + 🌿</div>
+        <div class="order-reward" id="orderReward">💰 +50</div>
+        <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+    </div>
+
+    <div class="ingredients-conveyor">
+        <div class="ingredient-scroll" id="ingredientScroll"></div>
+    </div>
+
+    <div class="current-pizza" id="currentPizza">🍞 Добавьте ингредиенты...</div>
+    <button class="complete-btn" id="completeBtn">✅ ГОТОВО →</button>
+
+    <div class="tab">
+        <button class="tab-btn active" id="tabUpgradeTab">📈 Улучшения</button>
+        <button class="tab-btn" id="tabLeaderTab">🏆 Рейтинг</button>
+        <button class="tab-btn" id="tabCareerTab">🚀 Карьера</button>
+    </div>
+
+    <div id="upgradePanel">
+        <div class="upgrades" style="padding:15px">
+            <div class="upgrade-item"><span>🔥 Печь (ускоритель)</span><button id="upgradeOven">Ур.0→1 (200💰)</button></div>
+            <div class="upgrade-item"><span>🤖 Робот-помощник</span><button id="upgradeRobot">Купить (500💰)</button></div>
+            <div class="upgrade-item"><span>📢 Маркетинг (VIP клиенты)</span><button id="upgradeMarketing">Купить (800💰)</button></div>
+            <div class="upgrade-item"><span>❄️ Холодильник (слоты)</span><button id="upgradeFridge">Купить (600💰)</button></div>
+        </div>
+    </div>
+
+    <div id="leaderPanel" style="display:none; padding:15px">
+        <div class="leaderboard"><h4>🏆 ТОП ПОВАРОВ</h4><ul id="leaderList" class="leaderboard-list"></ul><button id="resetLeader">Сбросить рейтинг</button></div>
+    </div>
+
+    <div id="careerPanel" style="display:none; padding:15px">
+        <div class="leaderboard"><h4>🚀 КАРЬЕРА</h4><p id="careerText">Вы работаете в гараже у дяди. Готовьте пиццы, чтобы расти!</p><progress id="careerProgress" value="0" max="100"></progress><p id="careerNext">Следующий этап: 30 пицц</p></div>
+    </div>
+</div>
+
+<script>
+    // НОВЫЕ ПИЦЦЫ
+    const PIZZAS = [
+        { name: "Маргарита", emoji: "🍕", ingredients: ["🍅","🧀","🌿"], baseReward: 55 },
+        { name: "Пепперони", emoji: "🍕", ingredients: ["🍅","🧀","🌶️"], baseReward: 75 },
+        { name: "Мясная", emoji: "🍕", ingredients: ["🍅","🧀","🥓","🌶️"], baseReward: 110 },
+        { name: "Гавайская", emoji: "🍍", ingredients: ["🍅","🧀","🥓","🍍"], baseReward: 95 },
+        { name: "Диабло", emoji: "🌶️", ingredients: ["🍅","🧀","🌶️","🌶️","🥓"], baseReward: 145 },
+        { name: "Морепродукты", emoji: "🦐", ingredients: ["🍅","🧀","🦐","🦑"], baseReward: 180 },
+        { name: "Четыре сезона", emoji: "🍂", ingredients: ["🍅","🧀","🍄","🥓","🦐"], baseReward: 160 }
+    ];
+
+    let gameState = {
+        money: 200,
+        level: 1,
+        pizzasMade: 0,
+        combo: 1,
+        currentIngredients: [],
+        currentOrder: null,
+        timeLeft: 25,
+        timerInterval: null,
+        upgrades: { oven:0, robot:false, marketing:false, fridge:0 },
+        careerStage: 1,
+        playerName: "Шеф"
+    };
+
+    let dirtyFlag = false;
+
+    function getMultiplier() {
+        let mult = 1 + (gameState.level-1)*0.2;
+        if(gameState.upgrades.marketing) mult += 0.25;
+        return mult;
+    }
+    function getReward() {
+        if(!gameState.currentOrder) return 0;
+        let base = gameState.currentOrder.baseReward;
+        return Math.floor(base * getMultiplier() * gameState.combo);
+    }
+
+    function renderIngredients() {
+        let all = ["🍅","🧀","🥓","🍄","🌿","🌶️","🍍","🦐","🦑","🥦","🧅","🥚"];
+        let extra = gameState.upgrades.fridge;
+        let needed = gameState.currentOrder ? gameState.currentOrder.ingredients : [];
+        let display = [...new Set([...needed, ...all.slice(0,5+extra)])];
+        document.getElementById("ingredientScroll").innerHTML = display.map(ing => `<button class="ingredient-item" data-ing="${ing}">${ing}</button>`).join("");
+        document.querySelectorAll(".ingredient-item").forEach(btn => {
+            btn.addEventListener("click", () => addIngredient(btn.dataset.ing));
+        });
+    }
+
+    function addIngredient(ing) {
+        if(dirtyFlag) return;
+        gameState.currentIngredients.push(ing);
+        updateCurrentDisplay();
+        if(gameState.upgrades.robot && Math.random()<0.3 && gameState.currentOrder) {
+            let need = gameState.currentOrder.ingredients.find(i=>!gameState.currentIngredients.includes(i));
+            if(need) { gameState.currentIngredients.push(need); showToast("🤖 Робот помог!"); updateCurrentDisplay(); }
+        }
+    }
+
+    function updateCurrentDisplay() {
+        let container = document.getElementById("currentPizza");
+        if(gameState.currentIngredients.length===0) container.innerHTML = "🍞 Добавьте ингредиенты...";
+        else container.innerHTML = "🍕 " + gameState.currentIngredients.join(" ");
+    }
+
+    function generateOrder() {
+        if(gameState.timerInterval) clearInterval(gameState.timerInterval);
+        let idx = Math.floor(Math.random() * PIZZAS.length);
+        gameState.currentOrder = { ...PIZZAS[idx] };
+        gameState.currentIngredients = [];
+        document.getElementById("orderName").innerHTML = gameState.currentOrder.name;
+        document.getElementById("orderEmoji").innerHTML = gameState.currentOrder.emoji;
+        document.getElementById("orderIngredients").innerHTML = gameState.currentOrder.ingredients.join(" + ");
+        document.getElementById("orderReward").innerHTML = `💰 +${getReward()}`;
+        gameState.timeLeft = Math.max(12, 25 - gameState.upgrades.oven*3);
+        updateTimerDisplay();
+        gameState.timerInterval = setInterval(()=>{
+            gameState.timeLeft--;
+            updateTimerDisplay();
+            if(gameState.timeLeft<=0) {
+                clearInterval(gameState.timerInterval);
+                showToast("❌ Время вышло! Штраф -10💰");
+                gameState.money = Math.max(0, gameState.money-10);
+                gameState.combo = 1;
+                updateUI();
+                generateOrder();
+            }
+        },1000);
+        renderIngredients();
+        updateUI();
+        document.getElementById("orderCard").classList.add("steam");
+        setTimeout(()=>document.getElementById("orderCard").classList.remove("steam"),800);
+    }
+
+    function updateTimerDisplay() {
+        let percent = (gameState.timeLeft/25)*100;
+        document.getElementById("timerFill").style.width = `${Math.min(100,percent)}%`;
+    }
+
+    function completeOrder() {
+        if(!gameState.currentOrder) return;
+        let required = [...gameState.currentOrder.ingredients].sort();
+        let provided = [...gameState.currentIngredients].sort();
+        if(required.length!==provided.length || !required.every((v,i)=>v===provided[i])) {
+            showToast("❌ Ошибка! Грязный экран — протрите!", true);
+            dirtyFlag = true;
+            let div = document.createElement("div");
+            div.className = "dirty-effect";
+            div.id = "dirtyEffect";
+            document.body.appendChild(div);
+            let swipeHandler = () => { div.remove(); dirtyFlag=false; showToast("✅ Чисто!"); document.removeEventListener("touchmove", swipeHandler); };
+            document.addEventListener("touchmove", swipeHandler);
+            return;
+        }
+        let reward = getReward();
+        gameState.money += reward;
+        gameState.pizzasMade++;
+        gameState.combo = Math.min(5, gameState.combo+1);
+        showToast(`✅ ${gameState.currentOrder.name} готова! +${reward}💰 Комбо x${gameState.combo}`);
+        if(gameState.timerInterval) clearInterval(gameState.timerInterval);
+        generateOrder();
+        updateUI();
+        updateCareer();
+        if(gameState.pizzasMade >= gameState.level*5) levelUp();
+    }
+
+    function levelUp() {
+        gameState.level++;
+        showToast(`⭐ Уровень ${gameState.level}! Доход +20%`);
+        updateUI();
+    }
+
+    function updateUI() {
+        document.getElementById("money").innerText = Math.floor(gameState.money);
+        document.getElementById("level").innerText = gameState.level;
+        document.getElementById("pizzasMade").innerText = gameState.pizzasMade;
+        document.getElementById("combo").innerText = gameState.combo;
+        if(gameState.currentOrder) document.getElementById("orderReward").innerHTML = `💰 +${getReward()}`;
+        saveGame();
+        updateLeaderboard();
+    }
+
+    function upgradeOven() {
+        let cost = 200 + gameState.upgrades.oven*150;
+        if(gameState.money>=cost && gameState.upgrades.oven<5) {
+            gameState.money-=cost;
+            gameState.upgrades.oven++;
+            showToast(`🔥 Печь +${gameState.upgrades.oven} уровень! Быстрее готовка.`);
+            updateUI();
+        } else showToast("❌ Не хватает денег или макс. уровень");
+    }
+    function upgradeRobot() {
+        if(!gameState.upgrades.robot && gameState.money>=500) {
+            gameState.money-=500; gameState.upgrades.robot=true;
+            showToast("🤖 Робот-помощник куплен! Автодобавка ингредиентов.");
+            updateUI();
+        } else showToast("❌ Уже куплено или мало денег");
+    }
+    function upgradeMarketing() {
+        if(!gameState.upgrades.marketing && gameState.money>=800) {
+            gameState.money-=800; gameState.upgrades.marketing=true;
+            showToast("📢 Маркетинг! VIP клиенты платят на 25% больше.");
+            updateUI();
+        } else showToast("❌ Недостаточно");
+    }
+    function upgradeFridge() {
+        let cost = 600 + gameState.upgrades.fridge*200;
+        if(gameState.money>=cost && gameState.upgrades.fridge<3) {
+            gameState.money-=cost; gameState.upgrades.fridge++;
+            showToast("❄️ Холодильник улучшен! Новые ингредиенты.");
+            renderIngredients();
+            updateUI();
+        } else showToast("❌ Мало денег");
+    }
+
+    // КАРЬЕРА
+    function updateCareer() {
+        let stage = 1;
+        if(gameState.pizzasMade>=80) stage=3;
+        else if(gameState.pizzasMade>=30) stage=2;
+        else stage=1;
+        gameState.careerStage = stage;
+        let texts = ["🚗 Работа в гараже у дяди","🍕 Фуд-трак в центре","🏙️ Собственный ресторан в Манхэттене"];
+        let nextReq = [30,80,150];
+        let progress = stage===1? (gameState.pizzasMade/30)*100 : stage===2? ((gameState.pizzasMade-30)/50)*100 : 100;
+        document.getElementById("careerText").innerHTML = texts[stage-1];
+        document.getElementById("careerProgress").value = Math.min(100,progress);
+        document.getElementById("careerNext").innerHTML = stage===3 ? "🏆 Вы король пиццы!" : `Следующий этап: ${nextReq[stage-1]} пицц`;
+    }
+    function addVIPOrder() {
+        if(Math.random()<0.2 && !gameState.vipActive) {
+            gameState.vipActive=true;
+            showToast("👑 VIP ЗАКАЗ! Тройная награда за 15 секунд!");
+            let old = gameState.currentOrder;
+            generateOrder();
+            gameState.currentOrder.baseReward = Math.floor(gameState.currentOrder.baseReward*3);
+            gameState.timeLeft = 15;
+            setTimeout(()=>{ gameState.vipActive=false; }, 15000);
+        }
+    }
+
+    // ЛИДЕРЫ
+    let leaderboard = [];
+    function loadLeaderboard() { let saved = localStorage.getItem("pizzaLeaders"); if(saved) leaderboard=JSON.parse(saved); renderLeaderboard(); }
+    function updateLeaderboard() {
+        let idx = leaderboard.findIndex(p=>p.name===gameState.playerName);
+        if(idx!==-1) leaderboard[idx] = {name:gameState.playerName, score:gameState.pizzasMade, level:gameState.level};
+        else leaderboard.push({name:gameState.playerName, score:gameState.pizzasMade, level:gameState.level});
+        leaderboard.sort((a,b)=>b.score-a.score);
+        leaderboard = leaderboard.slice(0,15);
+        localStorage.setItem("pizzaLeaders",JSON.stringify(leaderboard));
+        renderLeaderboard();
+    }
+    function renderLeaderboard() {
+        let html = leaderboard.map((p,i)=>`<li>${i+1}. ${p.name} — 🍕 ${p.score} ⭐${p.level}</li>`).join("");
+        document.getElementById("leaderList").innerHTML = html||"<li>Первый игрок!</li>";
+    }
+    function resetLeaderboard() { if(confirm("Сбросить рейтинг?")) { leaderboard=[]; localStorage.removeItem("pizzaLeaders"); renderLeaderboard(); showToast("Рейтинг сброшен"); } }
+
+    // ТЕМА
+    function toggleTheme() { document.body.classList.toggle("dark"); }
+
+    function showToast(msg, isError=false) {
+        let t = document.createElement("div"); t.className="toast"; t.innerText=msg; if(isError) t.style.background="#e74c3c";
+        document.body.appendChild(t); setTimeout(()=>t.remove(),2000);
+    }
+    function saveGame() {
+        let save = { money:gameState.money, level:gameState.level, pizzasMade:gameState.pizzasMade, upgrades:gameState.upgrades, careerStage:gameState.careerStage };
+        localStorage.setItem("pizzaSave",JSON.stringify(save));
+    }
+    function loadGame() {
+        let saved = localStorage.getItem("pizzaSave");
+        if(saved) {
+            let d = JSON.parse(saved);
+            gameState.money=d.money; gameState.level=d.level; gameState.pizzasMade=d.pizzasMade;
+            if(d.upgrades) gameState.upgrades=d.upgrades;
+            updateUI(); updateCareer();
+        }
+        let name = localStorage.getItem("pizzaName");
+        if(!name) { let n = prompt("Ваше имя для рейтинга:"); if(n) { gameState.playerName=n; localStorage.setItem("pizzaName",n); } }
+        else gameState.playerName=name;
+        loadLeaderboard();
+        generateOrder();
+        setInterval(()=>{ addVIPOrder(); }, 90000);
+    }
+
+    // Инициализация и кнопки
+    window.onload = () => {
+        loadGame();
+        document.getElementById("upgradeOven").onclick = upgradeOven;
+        document.getElementById("upgradeRobot").onclick = upgradeRobot;
+        document.getElementById("upgradeMarketing").onclick = upgradeMarketing;
+        document.getElementById("upgradeFridge").onclick = upgradeFridge;
+        document.getElementById("completeBtn").onclick = completeOrder;
+        document.getElementById("themeToggle").onclick = toggleTheme;
+        document.getElementById("resetLeader").onclick = resetLeaderboard;
+        document.getElementById("tabUpgradeTab").onclick = () => { document.getElementById("upgradePanel").style.display="block"; document.getElementById("leaderPanel").style.display="none"; document.getElementById("careerPanel").style.display="none"; };
+        document.getElementById("tabLeaderTab").onclick = () => { document.getElementById("upgradePanel").style.display="none"; document.getElementById("leaderPanel").style.display="block"; document.getElementById("careerPanel").style.display="none"; renderLeaderboard(); };
+        document.getElementById("tabCareerTab").onclick = () => { document.getElementById("upgradePanel").style.display="none"; document.getElementById("leaderPanel").style.display="none"; document.getElementById("careerPanel").style.display="block"; updateCareer(); };
+        updateCareer();
+        setInterval(()=>{ if(gameState.pizzasMade%5===0 && gameState.pizzasMade>0) { showToast("🔥 Час пик! Заказы идут быстрее!"); } }, 120000);
+    };
+</script>
+</body>
+</html>
